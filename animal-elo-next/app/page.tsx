@@ -1,21 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { getLeaderboard } from "@/lib/animals";
-import { useState, useEffect } from "react";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
 export default function Home() {
-  const [leaderboard, setLeaderboard] = useState(getLeaderboard());
+  const leaderboard = useQuery(api.animals.getLeaderboard);
 
-  // Refresh leaderboard when page gains focus (after returning from rank page)
-  useEffect(() => {
-    const handleFocus = () => {
-      setLeaderboard(getLeaderboard());
-    };
-
-    window.addEventListener("focus", handleFocus);
-    return () => window.removeEventListener("focus", handleFocus);
-  }, []);
+  if (!leaderboard) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 py-8 px-4 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl mb-4">🔄</div>
+          <p className="text-xl text-gray-600 dark:text-gray-300">Loading animals...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 py-8 px-4">
@@ -47,7 +48,7 @@ export default function Home() {
           <div className="divide-y divide-gray-200 dark:divide-gray-700 max-h-[600px] overflow-y-auto">
             {leaderboard.map((animal, index) => (
               <div
-                key={animal.id}
+                key={animal._id}
                 className={`px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
                   index < 3 ? "bg-yellow-50 dark:bg-yellow-900/20" : ""
                 }`}

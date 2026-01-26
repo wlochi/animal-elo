@@ -2,31 +2,58 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { getRandomPair, updateScore, type Animal } from "@/lib/animals";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
+
+interface Animal {
+  _id: Id<"animals">;
+  name: string;
+  emoji: string;
+  score: number;
+}
 
 export default function RankPage() {
-  const [pair, setPair] = useState<[Animal, Animal]>(getRandomPair());
+  const randomPair = useQuery(api.animals.getRandomPair);
+  const updateScoreMutation = useMutation(api.animals.updateScore);
+
   const [votesCount, setVotesCount] = useState(0);
   const [showAnimation, setShowAnimation] = useState(false);
   const [winner, setWinner] = useState<Animal | null>(null);
+  const [isVoting, setIsVoting] = useState(false);
 
-  const handleVote = (winnerId: number, loserId: number) => {
-    // Update scores
-    updateScore(winnerId, loserId);
-    
+  const handleVote = async (winnerId: Id<"animals">, loserId: Id<"animals">) => {
+    if (isVoting || !randomPair) return;
+
+    setIsVoting(true);
+
     // Show animation
-    const winningAnimal = pair.find(a => a.id === winnerId);
+    const winningAnimal = randomPair.find(a => a._id === winnerId);
     setWinner(winningAnimal || null);
     setShowAnimation(true);
-    
+
+    // Update scores in the background
+    updateScoreMutation({ winnerId, loserId });
+
     // Get new pair after animation
     setTimeout(() => {
-      setPair(getRandomPair());
       setVotesCount(votesCount + 1);
       setShowAnimation(false);
       setWinner(null);
+      setIsVoting(false);
     }, 800);
   };
+
+  if (!randomPair) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-100 dark:from-gray-900 dark:to-gray-800 py-8 px-4 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl mb-4">🔄</div>
+          <p className="text-xl text-gray-600 dark:text-gray-300">Loading animals...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-100 dark:from-gray-900 dark:to-gray-800 py-8 px-4">
@@ -58,24 +85,24 @@ export default function RankPage() {
         )}
 
         <div className="grid md:grid-cols-2 gap-8">
-          {pair.map((animal, index) => (
+          {randomPair.map((animal, index) => (
             <button
-              key={animal.id}
-              onClick={() => handleVote(animal.id, pair[1 - index].id)}
-              disabled={showAnimation}
+              key={animal._id}
+              onClick={() => handleVote(animal._id, randomPair[1 - index]._id)}
+              disabled={showAnimation || isVoting}
               className="group relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 hover:shadow-2xl hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
               <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
-              
+
               <div className="relative">
                 <div className="text-9xl mb-6 text-center animate-float">
                   {animal.emoji}
                 </div>
-                
+
                 <h2 className="text-3xl font-bold text-gray-900 dark:text-white text-center mb-4">
                   {animal.name}
                 </h2>
-                
+
                 <div className="text-center">
                   <span className="text-sm text-gray-500 dark:text-gray-400">
                     Current Score:

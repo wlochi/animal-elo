@@ -1,6 +1,8 @@
-import type { Metadata } from "next";
+"use client";
+
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { ConvexProvider, ConvexReactClient } from "convex/react";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -12,10 +14,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "Animal Elo - Rank Your Favorite Animals",
-  description: "Vote for your favorite animals and see how they rank on the leaderboard!",
-};
+const convex = new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 export default function RootLayout({
   children,
@@ -24,10 +23,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <title>Animal Elo - Rank Your Favorite Animals</title>
+        <meta name="description" content="Vote for your favorite animals and see how they rank on the leaderboard!" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <ConvexProvider client={convex}>
+          {children}
+        </ConvexProvider>
       </body>
     </html>
   );
